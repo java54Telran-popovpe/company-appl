@@ -35,7 +35,6 @@ public class CompanyApplItems {
 			items.add(Item.of(department, io -> io.writeLine(String.format("for department %s budget equals to %d%n", 
 					department, company.getDepartmentBudget(department))), true));
 		}
-		items.add(Item.ofExit());
 		return items;
 
 	}
@@ -51,7 +50,7 @@ public class CompanyApplItems {
 	
 	private static void addEmployee(InputOutput io) {
 		Employee empl = readEmployee(io);
-		Menu menu = new Menu("Choose title", getTitlesItems(empl).toArray(Item[]::new));
+		Menu menu = new Menu("Choose title for a new employee", getTitlesItems(empl).toArray(Item[]::new));
 		menu.perform(io);
 		io.writeLine("Employee has been added");
 	}
@@ -87,13 +86,9 @@ public class CompanyApplItems {
 	}
 
 	private static void getEmployee(InputOutput io) {
-		if ( isNotEmptyCompany(io)) {
 			Optional<Employee> employee  = Optional.ofNullable(io.readObject("Enter employee id", "Error occured", 
 					str -> company.getEmployee(Long.parseLong(str))));
-			employee.ifPresentOrElse(emp -> { 	io.writeLine("Detailed data about the employee\n");
-												writeEmployee(io, emp);
-											}, () -> io.writeLine("Employee not found"));
-		}
+			employee.ifPresentOrElse(emp -> writeEmployee(io, emp), () -> io.writeLine("Employee not found"));
 	}
 
 	private static void writeEmployee(InputOutput io, Employee employee) {
@@ -105,7 +100,6 @@ public class CompanyApplItems {
 			int numberOfTabs = getNumberOfTabs(fieldName, maxLength);
 			io.writeLine(String.format("%s%s%s", fieldName, "\t".repeat(numberOfTabs), jsonObject.get(fieldName).toString()));
 		}
-		io.writeLine("");
 	}
 
 
@@ -122,31 +116,32 @@ public class CompanyApplItems {
 	}
 
 	private static void removeEmployee(InputOutput io) {
-		if ( isNotEmptyCompany(io)) {
-			Employee employee  = io.readObject("Enter employee id", "Error occured",str -> company.getEmployee(Long.parseLong(str)));
-			if ( employee != null ) {
-				company.removeEmployee(employee.getId());
-				io.writeLine(String.format("The employee with id %d removed%n", employee.getId()));
-			} else {
-				io.writeLine("Employee not found\n");
-			}
+		Employee employee  = io.readObject("Enter employee id", "Error occured",str -> company.getEmployee(Long.parseLong(str)));
+		if ( employee != null ) {
+			company.removeEmployee(employee.getId());
+			io.writeLine(String.format("The employee with id %d removed%n", employee.getId()));
+		} else {
+			io.writeLine("Employee not found\n");
 		}
 	}
 
 	private static void getDepartmentBudget(InputOutput io) {
-		if ( isNotEmptyCompany(io)) {
+		if ( company.getDepartments().length != 0) {
 			Menu menu = new Menu("Choose department", getDepartmentItems().toArray(Item[]::new));
 			menu.perform(io);
+		} else {
+			io.writeLine(EMPTY_COMPANY_MESSAGE);
 		}
 	}
 
 	private static void getDepartments(InputOutput io) {
-		if ( isNotEmptyCompany(io)) {
-			io.writeLine("List of departments with employees");
-			for ( String department: company.getDepartments()) {
+		String[] departments = company.getDepartments();
+		if ( departments.length != 0 ) {
+			for ( String department: departments) {
 				io.writeLine(department);
 			}
-			io.writeLine("");
+		} else {
+			io.writeLine(EMPTY_COMPANY_MESSAGE);
 		}
 	}
 
@@ -162,14 +157,5 @@ public class CompanyApplItems {
 				io.writeLine("");
 			}
 		}
-	}
-	
-	private static boolean isNotEmptyCompany(InputOutput io) {
-		boolean result = true;
-		if ( company.getDepartments().length == 0 ) { 
-			result = false;
-			io.writeLine(EMPTY_COMPANY_MESSAGE);
-		}
-		return result;
 	}
 }
