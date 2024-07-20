@@ -78,8 +78,7 @@ public class CompanyApplItems {
 
 	private static Employee readEmployee(InputOutput io) {
 
-		long id = io.readNumberRange(String.format("Enter id value (should be between %d and %d)", MIN_EMPLOYEE_ID, MAX_EMPLOYEE_ID - 1), 
-				"Wrong id value", MIN_EMPLOYEE_ID, MAX_EMPLOYEE_ID).longValue();
+		long id = readEmployeeID(io);
 		int basicSalary = io.readNumberRange("Enter basic salary", "Wrong basic salary", 2000, 20000).intValue();
 		String department = io.readStringOptions("Enter department " + departments, "Wrong department", departments);
 		return new Employee(id, basicSalary, department);
@@ -116,13 +115,19 @@ public class CompanyApplItems {
 	}
 
 	private static void removeEmployee(InputOutput io) {
-		Employee employee  = io.readObject("Enter employee id", "Error occured",str -> company.getEmployee(Long.parseLong(str)));
-		if ( employee != null ) {
-			company.removeEmployee(employee.getId());
-			io.writeLine(String.format("The employee with id %d removed%n", employee.getId()));
-		} else {
-			io.writeLine("Employee not found\n");
+		long id = readEmployeeID(io);
+		try {
+			company.removeEmployee(id);
+			io.writeLine(String.format("The employee with id %d removed", id));
 		}
+		catch (NoSuchElementException e) {
+			io.writeLine(String.format("Employee with id %d not found", id));
+		}
+	}
+
+	private static long readEmployeeID(InputOutput io) {
+		return io.readNumberRange(String.format("Enter id value (should be between %d and %d)", MIN_EMPLOYEE_ID, MAX_EMPLOYEE_ID - 1), 
+				"Wrong id value", MIN_EMPLOYEE_ID, MAX_EMPLOYEE_ID).longValue();
 	}
 
 	private static void getDepartmentBudget(InputOutput io) {
