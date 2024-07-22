@@ -1,7 +1,7 @@
 package telran.employees;
 
 import java.util.*;
-import java.util.stream.Collectors;
+import java.util.function.Function;
 
 import org.json.JSONObject;
 
@@ -19,58 +19,59 @@ public class CompanyApplItems {
 	public static List<Item> getCompanyItems(Company company, HashSet<String> departments) {
 		CompanyApplItems.company = company;
 		CompanyApplItems.departments = departments;
-		Item[] items = { Item.of("add employee", CompanyApplItems::addEmployee),
-				Item.of("display employee data", CompanyApplItems::getEmployee),
-				Item.of("remove employee", CompanyApplItems::removeEmployee),
-				Item.of("display department budget", CompanyApplItems::getDepartmentBudget),
-				Item.of("display departments", CompanyApplItems::getDepartments),
-				Item.of("display managers with most factor", CompanyApplItems::getManagersWithMostFactor), };
+		Item[] items = { 	new Menu("add employee", getTitlesItems().toArray(Item[]::new)),
+							Item.of("display employee data", CompanyApplItems::getEmployee),
+							Item.of("remove employee", CompanyApplItems::removeEmployee),
+							new Menu("display department budget", getDepartmentItems().toArray(Item[]::new)),
+							Item.of("display departments", CompanyApplItems::getDepartments),
+							Item.of("display managers with most factor", CompanyApplItems::getManagersWithMostFactor), };
 		return new ArrayList<Item>(List.of(items));
 
 	}
 	
 	private static List<Item> getDepartmentItems() {
 		List<Item> items = new ArrayList<>();
-		for(String department: company.getDepartments() ) {
+		for(String department: departments ) {
 			items.add(Item.of(department, io -> io.writeLine(String.format("for department %s budget equals to %d%n", 
 					department, company.getDepartmentBudget(department))), true));
 		}
+		items.add(Item.of("Return to main menu", io -> {}, true));
 		return items;
 
 	}
 	
-	private static List<Item> getTitlesItems( Employee emp ) {
+	private static List<Item> getTitlesItems( ) {
 		List<Item> items = new ArrayList<>();
-		items.add(Item.of("WageEmployee", io -> company.addEmployee(getWageEmployee(emp, io)), true));
-		items.add(Item.of("Manager", io -> company.addEmployee(getManager(emp, io)), true));
-		items.add(Item.of("SalesPerson", io -> company.addEmployee(getSalesPerson(emp, io)), true));
+		items.add(Item.of("WageEmployee", io -> addEmployee(io,CompanyApplItems::getWageEmployee), true));
+		items.add(Item.of("Manager", io -> addEmployee(io,CompanyApplItems::getManager), true));
+		items.add(Item.of("SalesPerson", io -> addEmployee(io,CompanyApplItems::getSalesPerson), true));
+		items.add(Item.of("Return to main menu", io -> {}, true));
 		return items;
 
 	}
 	
-	private static void addEmployee(InputOutput io) {
-		Employee empl = readEmployee(io);
-		Menu menu = new Menu("Choose title for a new employee", getTitlesItems(empl).toArray(Item[]::new));
-		menu.perform(io);
-		io.writeLine("Employee has been added");
+	private static void addEmployee( InputOutput io, Function<InputOutput, Employee> func ) {
+		Employee emp = func.apply(io);
+		company.addEmployee(func.apply(io));
+		io.writeLine(String.format("Employee with id %d succesfully added", emp.getId()));
 	}
-
-	private static Employee getSalesPerson(Employee empl, InputOutput io) {
-		WageEmployee wageEmployee = (WageEmployee) getWageEmployee(empl, io);
+	
+	private static Employee getSalesPerson (InputOutput io) {
+		WageEmployee wageEmpl = (WageEmployee)getWageEmployee(io);
 		float percents = io.readNumberRange("Enter percents", "Wrong percents value", 0.5, 2).floatValue();
 		long sales = io.readNumberRange("Enter sales", "Wrong sales value", 500, 50000).longValue();
-		return new SalesPerson(empl.getId(), empl.getBasicSalary(), empl.getDepartment(), wageEmployee.getHours(),
-				wageEmployee.getWage(), percents, sales);
+		return new SalesPerson(wageEmpl.getId(), wageEmpl.getBasicSalary(), wageEmpl.getDepartment(), wageEmpl.getHours(),
+				wageEmpl.getWage(), percents, sales);
 	}
 
-	private static Employee getManager(Employee empl, InputOutput io) {
-
+	private static Employee getManager(InputOutput io) {
+		Employee empl = readEmployee(io);
 		float factor = io.readNumberRange("Enter factor", "Wrong factor value", 1.5, 5).floatValue();
 		return new Manager(empl.getId(), empl.getBasicSalary(), empl.getDepartment(), factor);
 	}
 
-	private static Employee getWageEmployee(Employee empl, InputOutput io) {
-
+	private static Employee getWageEmployee(InputOutput io) {
+		Employee empl = readEmployee(io);
 		int hours = io.readNumberRange("Enter working hours", "Wrong hours value", 10, 200).intValue();
 		int wage = io.readNumberRange("Enter hour wage", "Wrong wage value", MIN_EMPLOYEE_ID, MAX_EMPLOYEE_ID).intValue();
 		return new WageEmployee(empl.getId(), empl.getBasicSalary(), empl.getDepartment(), hours, wage);
@@ -128,15 +129,6 @@ public class CompanyApplItems {
 	private static long readEmployeeID(InputOutput io) {
 		return io.readNumberRange(String.format("Enter id value (should be between %d and %d)", MIN_EMPLOYEE_ID, MAX_EMPLOYEE_ID - 1), 
 				"Wrong id value", MIN_EMPLOYEE_ID, MAX_EMPLOYEE_ID).longValue();
-	}
-
-	private static void getDepartmentBudget(InputOutput io) {
-		if ( company.getDepartments().length != 0) {
-			Menu menu = new Menu("Choose department", getDepartmentItems().toArray(Item[]::new));
-			menu.perform(io);
-		} else {
-			io.writeLine(EMPTY_COMPANY_MESSAGE);
-		}
 	}
 
 	private static void getDepartments(InputOutput io) {
